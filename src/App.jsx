@@ -639,31 +639,42 @@ export default function App() {
   }
 
   function exportCalendar() {
+    const isWeekView = calendarView === "week";
     const width = 1800;
-    const headerAndPadding = 44 + 80 + 52 + 44;
-    const dynamicGridHeight = [0, 1, 2, 3, 4, 5].reduce((sum, week) => sum + Number(weekHeights[week] || 178), 0);
-    const height = Math.max(900, headerAndPadding + dynamicGridHeight);
     const padding = 44;
     const headerHeight = 80;
     const weekdayHeight = 52;
     const gridTop = padding + headerHeight + weekdayHeight;
     const cellW = (width - padding * 2) / 7;
-    const weekHeightsForExport = [0, 1, 2, 3, 4, 5].map((week) => Number(weekHeights[week] || 178));
     const scale = 2;
+
+    let weekHeightsForExport;
+    let canvasHeight;
+    if (isWeekView) {
+      const weekHeight = Number(weekHeights[0] || 320);
+      weekHeightsForExport = [weekHeight];
+      canvasHeight = Math.max(700, gridTop + weekHeight + padding);
+    } else {
+      weekHeightsForExport = [0, 1, 2, 3, 4, 5].map((week) => Number(weekHeights[week] || 178));
+      const dynamicGridHeight = weekHeightsForExport.reduce((sum, h) => sum + h, 0);
+      canvasHeight = Math.max(900, gridTop + dynamicGridHeight + padding);
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = width * scale;
-    canvas.height = height * scale;
+    canvas.height = canvasHeight * scale;
     const ctx = canvas.getContext("2d");
     ctx.scale(scale, scale);
     ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, width, canvasHeight);
     ctx.fillStyle = "#ffffff";
-    roundedRect(ctx, 24, 24, width - 48, height - 48, 28);
+    roundedRect(ctx, 24, 24, width - 48, canvasHeight - 48, 28);
     ctx.fill();
 
     ctx.fillStyle = "#111827";
     ctx.font = "700 34px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
-    ctx.fillText(monthTitle(viewMonth), padding, padding + 46);
+    const titleText = isWeekView ? weekTitle(dates[0] || viewMonth) : monthTitle(viewMonth);
+    ctx.fillText(titleText, padding, padding + 46);
 
     const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     ctx.font = "600 18px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
@@ -675,11 +686,12 @@ export default function App() {
       const row = Math.floor(index / 7);
       const x = padding + col * cellW;
       const y = gridTop + weekHeightsForExport.slice(0, row).reduce((sum, value) => sum + value, 0);
-      const cellH = weekHeightsForExport[row];
+      const cellH = weekHeightsForExport[row] || (isWeekView ? 320 : 178);
       const iso = toISODate(date);
       const dayRecords = sortedFilteredRecords.filter((r) => r.publishDate === iso && !r.isEditing);
       const dayHotspots = holidayHotspots[iso] || [];
-      ctx.fillStyle = isSameMonth(date, viewMonth) ? "#ffffff" : "#f8fafc";
+      const outside = !isWeekView && !isSameMonth(date, viewMonth);
+      ctx.fillStyle = outside ? "#f8fafc" : "#ffffff";
       ctx.fillRect(x, y, cellW, cellH);
       ctx.strokeStyle = "#e5e7eb";
       ctx.strokeRect(x, y, cellW, cellH);
@@ -700,7 +712,7 @@ export default function App() {
         cursorY += 28;
       });
 
-      dayRecords.slice(0, 3).forEach((record) => {
+      dayRecords.slice(0, isWeekView ? 6 : 3).forEach((record) => {
         const color = tagColor(record.ip || "默认");
         const cardX = x + 10;
         const cardY = cursorY + 4;
@@ -733,7 +745,7 @@ export default function App() {
     });
 
     const link = document.createElement("a");
-    link.download = `内容排期日历-${monthTitle(viewMonth)}.png`;
+    link.download = `内容排期日历-${isWeekView ? weekTitle(dates[0] || viewMonth) : monthTitle(viewMonth)}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   }
