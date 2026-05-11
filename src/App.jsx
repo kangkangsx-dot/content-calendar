@@ -722,62 +722,93 @@ export default function App() {
         const cardY = cursorY + 4;
         const cardW = cellW - 20;
         const cardH = 106;
+
+        // 卡片背景 + 边框
         ctx.fillStyle = hexToRgba(color, 0.12);
-        ctx.strokeStyle = hexToRgba(color, 0.28);
+        ctx.strokeStyle = hexToRgba(color, 0.26);
+        ctx.lineWidth = 1;
         roundedRect(ctx, cardX, cardY, cardW, cardH, 16);
         ctx.fill();
         ctx.stroke();
-        ctx.textAlign = "right";
-        ctx.fillStyle = hexToRgba(color, 0.22);
-        roundedRect(ctx, cardX + cardW - 118, cardY + 10, 104, 24, 12);
+
+        // ---- IP pill ----
+        // CSS: padding: 7px 8px 8px -> top=7
+        //      .calendar-ip-pill: padding:0 8px; min-height:22px; border-radius:999px; border:1px solid; line-height:22px
+        const ipText = record.ip || "未填写IP";
+        const ipColor = tagColor(ipText);
+        const ipBg = hexToRgba(ipColor, 0.18);
+        const ipH = 22;
+        const ipPaddingH = 8;
+        ctx.font = "650 11px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+        const ipTextW = ctx.measureText(ipText).width;
+        const ipPillW = ipTextW + ipPaddingH * 2;
+        const ipPillX = cardX + cardW - 8 - ipPillW;
+        const ipPillY = cardY + 7;
+        ctx.fillStyle = ipBg;
+        roundedRect(ctx, ipPillX, ipPillY, ipPillW, ipH, 12);
         ctx.fill();
-        ctx.fillStyle = color;
-        ctx.font = "700 13px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
-        ctx.fillText(record.ip || "未填写IP", cardX + cardW - 22, cardY + 27);
-        ctx.fillStyle = "#111827";
-        ctx.font = "700 14px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
-        wrapText(ctx, record.topic || "未填写主题", cardW - 28, 2).forEach((line, i) => {
-          ctx.fillText(line, cardX + cardW - 14, cardY + 50 + i * 18);
+        ctx.fillStyle = ipColor;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ipText, ipPillX + ipPillW / 2, ipPillY + ipH / 2);
+
+        // ---- Topic ----
+        // CSS: gap:5px; .calendar-topic: font-size:12px; font-weight:650; line-height:1.25
+        const topicY = ipPillY + ipH + 5;
+        ctx.fillStyle = "#1f2937";
+        ctx.font = "650 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "alphabetic";
+        const topicLines = wrapText(ctx, record.topic || "未填写主题", cardW - 28, 2);
+        topicLines.forEach((line, i) => {
+          ctx.fillText(line, cardX + cardW - 8, topicY + 14 + i * 15);
         });
-        // 绘制平台 pills（从右往左）
+
+        // ---- Platform row ----
+        // CSS: gap:5px; .calendar-platform-row: display:flex; justify-content:flex-end; align-items:center; gap:4px;
+        //      .platform-icon: min-width:23px; height:23px; padding:0 6px; border-radius:999px; border:1px solid rgba(148,163,184,.22); font-size:11px; font-weight:700;
+        const platformRowY = topicY + 14 + (topicLines.length - 1) * 15 + 5;
         const platforms = record.platforms;
         if (platforms.length) {
-          let px = cardX + cardW - 14;
-          const py = cardY + 74;
+          let px = cardX + cardW - 8;
+          const py = platformRowY;
+          const iconH = 23;
           platforms.slice().reverse().forEach((platform) => {
             const config = platformIconMap[platform] || { short: platform.slice(0, 1), bg: "#f8fafc", color: "#475467" };
             ctx.font = "700 11px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
             const textW = ctx.measureText(config.short).width;
-            const pillW = Math.max(23, textW + 12);
-            const pillX = px - pillW;
+            const iconW = Math.max(23, textW + 12);
+            const iconX = px - iconW;
             ctx.fillStyle = config.bg;
-            roundedRect(ctx, pillX, py, pillW, 23, 12);
+            roundedRect(ctx, iconX, py, iconW, iconH, 12);
             ctx.fill();
             ctx.strokeStyle = "rgba(148,163,184,0.22)";
             ctx.lineWidth = 1;
-            roundedRect(ctx, pillX, py, pillW, 23, 12);
+            roundedRect(ctx, iconX, py, iconW, iconH, 12);
             ctx.stroke();
             ctx.fillStyle = config.color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(config.short, pillX + pillW / 2, py + 11.5);
-            px = pillX - 4;
+            ctx.fillText(config.short, iconX + iconW / 2, py + iconH / 2);
+            px = iconX - 4;
           });
-          ctx.textAlign = "left";
-          ctx.textBaseline = "alphabetic";
         } else {
-          ctx.fillStyle = "#94a3b8";
-          ctx.font = "500 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+          ctx.fillStyle = "#475467";
+          ctx.font = "500 11px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
           ctx.textAlign = "right";
-          ctx.fillText("未填写", cardX + cardW - 14, cardY + 90);
-          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillText("未填写", cardX + cardW - 8, platformRowY + 17);
         }
 
-        // 绘制账号类型 pills（从右往左）
+        // ---- Account type row ----
+        // CSS: gap:5px; .calendar-account-type-row: display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:4px;
+        //      .account-type-pill: min-height:21px; padding:0 7px; border-radius:999px; border:1px solid; font-size:10.5px; font-weight:600;
+        const accRowY = platformRowY + 23 + 5;
         const accountTypes = record.accountTypes;
         if (accountTypes.length) {
-          let px = cardX + cardW - 14;
-          const aty = cardY + 96;
+          let px = cardX + cardW - 8;
+          const py = accRowY;
+          const pillH = 21;
           accountTypes.slice().reverse().forEach((type) => {
             const style = tagStyle(type);
             ctx.font = "600 10.5px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
@@ -785,29 +816,29 @@ export default function App() {
             const pillW = textW + 14;
             const pillX = px - pillW;
             ctx.fillStyle = style.background;
-            roundedRect(ctx, pillX, aty, pillW, 21, 11);
+            roundedRect(ctx, pillX, py, pillW, pillH, 11);
             ctx.fill();
             ctx.strokeStyle = style.borderColor;
             ctx.lineWidth = 1;
-            roundedRect(ctx, pillX, aty, pillW, 21, 11);
+            roundedRect(ctx, pillX, py, pillW, pillH, 11);
             ctx.stroke();
             ctx.fillStyle = style.color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(type, pillX + pillW / 2, aty + 10.5);
+            ctx.fillText(type, pillX + pillW / 2, py + pillH / 2);
             px = pillX - 4;
           });
-          ctx.textAlign = "left";
-          ctx.textBaseline = "alphabetic";
         } else {
-          ctx.fillStyle = "#94a3b8";
-          ctx.font = "500 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+          ctx.fillStyle = "#475467";
+          ctx.font = "500 11px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
           ctx.textAlign = "right";
-          ctx.fillText("未填写类型", cardX + cardW - 14, cardY + 112);
-          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillText("未填写类型", cardX + cardW - 8, accRowY + 17);
         }
 
+        // Reset text align
         ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
         cursorY += cardH + 10;
       });
     });
