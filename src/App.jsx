@@ -161,7 +161,10 @@ function getMonthDates(viewDate) {
   const first = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
   const startOffset = (first.getDay() + 6) % 7;
   const start = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1 - startOffset);
-  return Array.from({ length: 42 }, (_, index) => {
+  const lastDay = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+  const endOffset = 6 - ((lastDay.getDay() + 6) % 7);
+  const totalDays = startOffset + lastDay.getDate() + endOffset;
+  return Array.from({ length: totalDays }, (_, index) => {
     const current = new Date(start);
     current.setDate(start.getDate() + index);
     return current;
@@ -655,7 +658,8 @@ export default function App() {
       weekHeightsForExport = [weekHeight];
       canvasHeight = Math.max(700, gridTop + weekHeight + padding);
     } else {
-      weekHeightsForExport = [0, 1, 2, 3, 4, 5].map((week) => Number(weekHeights[week] || 178));
+      const rowCount = Math.ceil(dates.length / 7);
+      weekHeightsForExport = Array.from({ length: rowCount }, (_, i) => Number(weekHeights[i] || 178));
       const dynamicGridHeight = weekHeightsForExport.reduce((sum, h) => sum + h, 0);
       canvasHeight = Math.max(900, gridTop + dynamicGridHeight + padding);
     }
@@ -906,7 +910,7 @@ export default function App() {
             style={{
               gridTemplateRows: calendarView === "week"
                 ? `42px ${weekHeights[0] || 320}px`
-                : `42px ${[0, 1, 2, 3, 4, 5].map((i) => `${weekHeights[i] || 178}px`).join(" ")}`,
+                : `42px ${Array.from({ length: Math.ceil(dates.length / 7) }, (_, i) => `${weekHeights[i] || 178}px`).join(" ")}`,
             }}
           >
             {["周一", "周二", "周三", "周四", "周五", "周六", "周日"].map((day) => <div key={day} className="weekday-cell">{day}</div>)}
@@ -1013,6 +1017,7 @@ export default function App() {
         .day-cell { position: relative; min-height: 120px; overflow: hidden; padding: 8px 8px 16px; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background: rgba(255,255,255,.76); display: flex; flex-direction: column; gap: 6px; }
         .outside-month { background: rgba(248,250,252,.64); }
         .day-number { font-size: 13px; font-weight: 700; color: #111827; align-self: flex-end; }
+        .outside-month .day-number { color: #94a3b8; }
         .holiday-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
         .holiday-grid.single-holiday { grid-template-columns: 1fr; }
         .holiday-tag { display: inline-flex; align-items: center; justify-content: center; min-height: 23px; padding: 0 7px; border-radius: 999px; background: #eef2ff; color: #6272d9; font-size: 10.5px; font-weight: 500; line-height: 1; text-align: center; white-space: nowrap; overflow: visible; }
