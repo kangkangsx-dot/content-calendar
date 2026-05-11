@@ -144,6 +144,15 @@ function monthTitle(date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月`;
 }
 
+function weekTitle(startDate) {
+  const end = new Date(startDate);
+  end.setDate(startDate.getDate() + 6);
+  const sameMonth = startDate.getMonth() === end.getMonth();
+  const startStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`;
+  const endStr = sameMonth ? `${end.getDate()}日` : `${end.getMonth() + 1}月${end.getDate()}日`;
+  return `${startDate.getFullYear()}年 ${startStr} - ${endStr}`;
+}
+
 function isSameMonth(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 }
@@ -153,6 +162,16 @@ function getMonthDates(viewDate) {
   const startOffset = (first.getDay() + 6) % 7;
   const start = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1 - startOffset);
   return Array.from({ length: 42 }, (_, index) => {
+    const current = new Date(start);
+    current.setDate(start.getDate() + index);
+    return current;
+  });
+}
+
+function getWeekDates(viewDate) {
+  const startOffset = (viewDate.getDay() + 6) % 7;
+  const start = new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate() - startOffset);
+  return Array.from({ length: 7 }, (_, index) => {
     const current = new Date(start);
     current.setDate(start.getDate() + index);
     return current;
@@ -295,6 +314,7 @@ export default function App() {
   const [records, setRecords] = useState(loadRecords);
   const [collapsed, setCollapsed] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date(2026, 4, 1));
+  const [calendarView, setCalendarView] = useState("month"); // "month" | "week"
   const [columnWidths, setColumnWidths] = useState(() => ({ ...defaultColumnWidths, ...loadJson(WIDTH_KEY, {}) }));
   const [rowHeights, setRowHeights] = useState(() => loadJson(ROW_HEIGHT_KEY, {}));
   const [weekHeights, setWeekHeights] = useState(() => ({ 0: 178, 1: 178, 2: 178, 3: 178, 4: 178, 5: 178, ...loadJson(WEEK_HEIGHT_KEY, {}) }));
@@ -408,7 +428,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [records, supabaseReady]);
 
-  const dates = useMemo(() => getMonthDates(viewMonth), [viewMonth]);
+  const dates = useMemo(() => calendarView === "week" ? getWeekDates(viewMonth) : getMonthDates(viewMonth), [viewMonth, calendarView]);
   const tableWidth = useMemo(
     () => columns.reduce((sum, [key]) => sum + Number(columnWidths[key] || 0) * tableScale, 0),
     [columnWidths, tableScale]
@@ -795,20 +815,22 @@ export default function App() {
           <div className="calendar-toolbar">
             <div className="calendar-left">
               <button type="button" className="mini-button" onClick={() => setViewMonth(new Date(2026, 4, 1))}>今天</button>
-              <button type="button" className="arrow-button" onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>‹</button>
-              <button type="button" className="arrow-button" onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>›</button>
-              <div className="calendar-title">{monthTitle(viewMonth)}</div>
+              <button type="button" className="arrow-button" onClick={() => setViewMonth((d) => calendarView === "week" ? new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7) : new Date(d.getFullYear(), d.getMonth() - 1, 1))}>‹</button>
+              <button type="button" className="arrow-button" onClick={() => setViewMonth((d) => calendarView === "week" ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7) : new Date(d.getFullYear(), d.getMonth() + 1, 1))}>›</button>
+              <div className="calendar-title">{calendarView === "week" ? weekTitle(dates[0] || viewMonth) : monthTitle(viewMonth)}</div>
             </div>
             <div className="calendar-right">
               <button type="button" className="export-button" onClick={exportCalendar}><Download className="download-icon" /> 导出图片</button>
-              <div className="calendar-view-pill">月</div>
+              <button type="button" className="calendar-view-pill" onClick={() => setCalendarView((v) => v === "month" ? "week" : "month")}>{calendarView === "month" ? "月" : "周"}</button>
             </div>
           </div>
 
           <div
             className="calendar-grid"
             style={{
-              gridTemplateRows: `42px ${[0, 1, 2, 3, 4, 5].map((i) => `${weekHeights[i] || 178}px`).join(" ")}`,
+              gridTemplateRows: calendarView === "week"
+                ? `42px ${weekHeights[0] || 320}px`
+                : `42px ${[0, 1, 2, 3, 4, 5].map((i) => `${weekHeights[i] || 178}px`).join(" ")}`,
             }}
           >
             {["周一", "周二", "周三", "周四", "周五", "周六", "周日"].map((day) => <div key={day} className="weekday-cell">{day}</div>)}
@@ -818,7 +840,7 @@ export default function App() {
               const isLast = index % 7 === 6;
               const dayRecords = sortedFilteredRecords.filter((item) => item.publishDate === iso && !item.isEditing);
               const hotspots = holidayHotspots[iso] || [];
-              const outside = !isSameMonth(date, viewMonth);
+              const outside = calendarView === "month" && !isSameMonth(date, viewMonth);
               return (
                 <div key={iso} className={`day-cell ${outside ? "outside-month" : ""}`}>
                   <div className="day-number">{date.getDate()}日</div>
@@ -830,12 +852,12 @@ export default function App() {
                   <div className="day-records">
                     {dayRecords.map((record) => <CalendarCard key={record.id} record={record} />)}
                   </div>
-                  {isLast && <div className="week-row-resize-handle" onMouseDown={(event) => resizeWeek(event, weekIndex)}>拖动调整本周高度</div>}
+                  {calendarView === "month" && isLast && <div className="week-row-resize-handle" onMouseDown={(event) => resizeWeek(event, weekIndex)}>拖动调整本周高度</div>}
                 </div>
               );
             })}
           </div>
-          <div className="calendar-resize-note">每周最右侧格子底部可拖动调整该行高度</div>
+          {calendarView === "month" && <div className="calendar-resize-note">每周最右侧格子底部可拖动调整该行高度</div>}
         </section>
       </div>
 
@@ -877,7 +899,7 @@ export default function App() {
         .schedule-table tr:hover td { background: rgba(247,250,255,.95); }
         .display-text { min-height: calc(20px * var(--table-scale)); line-height: calc(20px * var(--table-scale)); color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: calc(13px * var(--table-scale)); }
         .display-topic { font-weight: 500; font-size: calc(13px * var(--table-scale)); }
-        .cell-input { width: 100%; height: calc(30px * var(--table-scale)); border-radius: calc(10px * var(--table-scale)); border: 1px solid #d9e0ea; background: white; padding: 0 calc(8px * var(--table-scale)); outline: none; font-size: calc(13px * var(--table-scale)); color: #111827; text-align: center; }
+        .cell-input { width: 100%; height: calc(30px * var(--table-scale)); border-radius: calc(10px * var(--table-scale)); border: 1px solid #d9e0ea; background: white; padding: 0 calc(8px * var(--table-scale)); outline: none; font-size: calc(13px * var(--table-scale)); color: #111827 !important; text-align: center; color-scheme: light; }
         .tag-group { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: calc(5px * var(--table-scale)); min-height: calc(20px * var(--table-scale)); }
         .tag-pill { display: inline-flex; align-items: center; gap: calc(5px * var(--table-scale)); min-height: calc(23px * var(--table-scale)); padding: 0 calc(8px * var(--table-scale)); border-radius: 999px; border: 1px solid; font-size: calc(12px * var(--table-scale)); font-weight: 500; line-height: calc(23px * var(--table-scale)); white-space: nowrap; transition: .15s ease; }
         .tag-pill:hover { transform: translateY(-1px); filter: brightness(1.03); }
@@ -897,7 +919,7 @@ export default function App() {
         .tag-editor-top { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: calc(5px * var(--table-scale)); }
         .add-chip-button { height: calc(23px * var(--table-scale)); padding: 0 calc(8px * var(--table-scale)); border: 1px dashed #cbd5e1; border-radius: 999px; background: white; color: #64748b; font-size: 12px; font-weight: 500; }
         .mini-editor { display: flex; align-items: center; gap: calc(5px * var(--table-scale)); }
-        .mini-input { width: calc(118px * var(--table-scale)); height: calc(27px * var(--table-scale)); border-radius: 9px; border: 1px solid #d9e0ea; background: white; padding: 0 9px; outline: none; font-size: 12px; text-align: center; }
+        .mini-input { width: calc(118px * var(--table-scale)); height: calc(27px * var(--table-scale)); border-radius: 9px; border: 1px solid #d9e0ea; background: white; padding: 0 9px; outline: none; font-size: 12px; color: #111827 !important; text-align: center; color-scheme: light; }
         .mini-save { height: calc(27px * var(--table-scale)); padding: 0 calc(8px * var(--table-scale)); border: none; border-radius: 9px; background: #eef5ff; color: #007aff; font-size: 12px; font-weight: 600; }
         .link-cell { color: #007aff; font-weight: 600; text-decoration: none; }
         .link-cell:hover { text-decoration: underline; }
