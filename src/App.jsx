@@ -735,10 +735,74 @@ export default function App() {
         wrapText(ctx, record.topic || "未填写主题", cardW - 28, 2).forEach((line, i) => {
           ctx.fillText(line, cardX + cardW - 14, cardY + 50 + i * 18);
         });
-        ctx.fillStyle = "#475467";
-        ctx.font = "500 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
-        ctx.fillText(record.platforms.join("、"), cardX + cardW - 14, cardY + 78);
-        ctx.fillText(record.accountTypes.join("、"), cardX + cardW - 14, cardY + 96);
+        // 绘制平台 pills（从右往左）
+        const platforms = record.platforms;
+        if (platforms.length) {
+          let px = cardX + cardW - 14;
+          const py = cardY + 74;
+          platforms.slice().reverse().forEach((platform) => {
+            const config = platformIconMap[platform] || { short: platform.slice(0, 1), bg: "#f8fafc", color: "#475467" };
+            ctx.font = "700 11px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+            const textW = ctx.measureText(config.short).width;
+            const pillW = Math.max(23, textW + 12);
+            const pillX = px - pillW;
+            ctx.fillStyle = config.bg;
+            roundedRect(ctx, pillX, py, pillW, 23, 12);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(148,163,184,0.22)";
+            ctx.lineWidth = 1;
+            roundedRect(ctx, pillX, py, pillW, 23, 12);
+            ctx.stroke();
+            ctx.fillStyle = config.color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(config.short, pillX + pillW / 2, py + 11.5);
+            px = pillX - 4;
+          });
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+        } else {
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "500 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+          ctx.textAlign = "right";
+          ctx.fillText("未填写", cardX + cardW - 14, cardY + 90);
+          ctx.textAlign = "left";
+        }
+
+        // 绘制账号类型 pills（从右往左）
+        const accountTypes = record.accountTypes;
+        if (accountTypes.length) {
+          let px = cardX + cardW - 14;
+          const aty = cardY + 96;
+          accountTypes.slice().reverse().forEach((type) => {
+            const style = tagStyle(type);
+            ctx.font = "600 10.5px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+            const textW = ctx.measureText(type).width;
+            const pillW = textW + 14;
+            const pillX = px - pillW;
+            ctx.fillStyle = style.background;
+            roundedRect(ctx, pillX, aty, pillW, 21, 11);
+            ctx.fill();
+            ctx.strokeStyle = style.borderColor;
+            ctx.lineWidth = 1;
+            roundedRect(ctx, pillX, aty, pillW, 21, 11);
+            ctx.stroke();
+            ctx.fillStyle = style.color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(type, pillX + pillW / 2, aty + 10.5);
+            px = pillX - 4;
+          });
+          ctx.textAlign = "left";
+          ctx.textBaseline = "alphabetic";
+        } else {
+          ctx.fillStyle = "#94a3b8";
+          ctx.font = "500 12px -apple-system, BlinkMacSystemFont, PingFang SC, sans-serif";
+          ctx.textAlign = "right";
+          ctx.fillText("未填写类型", cardX + cardW - 14, cardY + 112);
+          ctx.textAlign = "left";
+        }
+
         ctx.textAlign = "left";
         cursorY += cardH + 10;
       });
