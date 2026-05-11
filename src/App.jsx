@@ -895,8 +895,8 @@ export default function App() {
         .primary-button:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(0,122,255,.28); filter: brightness(1.03); }
         .primary-button:active { transform: translateY(0); filter: brightness(.96); }
         .secondary-button, .export-button { border: 1px solid #dde4ee; background: rgba(255,255,255,.95); color: #475467; box-shadow: 0 4px 14px rgba(15,23,42,.035); }
-        .secondary-button:hover, .export-button:hover, .collapse-button:hover, .mini-button:hover, .arrow-button:hover { background: #f8fbff; border-color: #b9d7ff; color: #007aff; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,.07); }
-        .secondary-button:active, .export-button:active, .collapse-button:active, .mini-button:active, .arrow-button:active { transform: translateY(0); }
+        .secondary-button:hover, .export-button:hover, .collapse-button:hover, .mini-button:hover, .arrow-button:hover, .calendar-view-pill:hover { background: #f8fbff; border-color: #b9d7ff; color: #007aff; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,.07); }
+        .secondary-button:active, .export-button:active, .collapse-button:active, .mini-button:active, .arrow-button:active, .calendar-view-pill:active { transform: translateY(0); }
         .table-size-shell { position: relative; min-height: 220px; overflow: hidden; --table-scale: 1; }
         .table-scroll { height: calc(100% - 22px); overflow: auto; }
         .schedule-table { border-collapse: collapse; table-layout: fixed; background: transparent; font-size: calc(14px * var(--table-scale)); }
