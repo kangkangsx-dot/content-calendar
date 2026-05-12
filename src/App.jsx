@@ -17,6 +17,7 @@ const defaultRecords = [
     ip: "小度有技术",
     topic: "闺蜜机技术解读",
     platforms: ["小红书"],
+    contentForms: ["小红书"],
     accounts: ["小度官方"],
     accountTypes: ["品牌号"],
     owners: ["康文嘉"],
@@ -30,6 +31,7 @@ const defaultRecords = [
     ip: "大咖用小度",
     topic: "达人种草视频混剪",
     platforms: ["抖音"],
+    contentForms: ["抖音"],
     accounts: ["小度生活家"],
     accountTypes: ["种草号"],
     owners: ["康文嘉"],
@@ -66,6 +68,7 @@ const columns = [
   ["ip", "IP"],
   ["topic", "内容主题"],
   ["platforms", "发布平台"],
+  ["contentForms", "内容形式"],
   ["accounts", "发布账号"],
   ["accountTypes", "账号类型"],
   ["owners", "负责人"],
@@ -80,6 +83,7 @@ const defaultColumnWidths = {
   ip: 190,
   topic: 310,
   platforms: 190,
+  contentForms: 190,
   accounts: 190,
   accountTypes: 190,
   owners: 190,
@@ -233,6 +237,7 @@ function normalizeRecord(item) {
     ip: item.ip || "",
     topic: item.topic || "",
     platforms: Array.isArray(item.platforms) ? item.platforms : [],
+    contentForms: Array.isArray(item.contentForms) ? item.contentForms : [],
     accounts: Array.isArray(item.accounts) ? item.accounts : [],
     accountTypes: Array.isArray(item.accountTypes) ? item.accountTypes : [],
     owners: Array.isArray(item.owners) ? item.owners : [],
@@ -255,6 +260,7 @@ function createRecord() {
     ip: "",
     topic: "",
     platforms: [],
+    contentForms: [],
     accounts: [],
     accountTypes: [],
     owners: [],
@@ -328,6 +334,7 @@ export default function App() {
     ip: "",
     topic: "",
     platforms: "",
+    contentForms: "",
     accounts: "",
     accountTypes: "",
     owners: "",
@@ -337,6 +344,7 @@ export default function App() {
   const [deletedOptions, setDeletedOptions] = useState(() => ({
     ip: [],
     platforms: [],
+    contentForms: [],
     accounts: [],
     accountTypes: [],
     owners: [],
@@ -416,6 +424,7 @@ export default function App() {
         ip: r.ip,
         topic: r.topic,
         platforms: r.platforms,
+        content_forms: r.contentForms,
         accounts: r.accounts,
         account_types: r.accountTypes,
         owners: r.owners,
@@ -444,6 +453,7 @@ export default function App() {
       ip: filterDeleted("ip", unique(records.map((r) => r.ip))),
       topic: unique(records.map((r) => r.topic)),
       platforms: filterDeleted("platforms", unique(records.flatMap((r) => r.platforms))),
+      contentForms: filterDeleted("contentForms", unique(records.flatMap((r) => r.contentForms))),
       accounts: filterDeleted("accounts", unique(records.flatMap((r) => r.accounts))),
       accountTypes: filterDeleted("accountTypes", unique(records.flatMap((r) => r.accountTypes))),
       owners: filterDeleted("owners", unique(records.flatMap((r) => r.owners))),
@@ -459,6 +469,7 @@ export default function App() {
         (!filters.ip || record.ip === filters.ip) &&
         (!filters.topic || record.topic === filters.topic) &&
         (!filters.platforms || record.platforms.includes(filters.platforms)) &&
+        (!filters.contentForms || record.contentForms.includes(filters.contentForms)) &&
         (!filters.accounts || record.accounts.includes(filters.accounts)) &&
         (!filters.accountTypes || record.accountTypes.includes(filters.accountTypes)) &&
         (!filters.owners || record.owners.includes(filters.owners)) &&
@@ -537,13 +548,14 @@ export default function App() {
   }
 
   function clearFilters() {
-    setFilters({ publishDate: "", ip: "", topic: "", platforms: "", accounts: "", accountTypes: "", owners: "", contentLink: "", publishLink: "" });
+    setFilters({ publishDate: "", ip: "", topic: "", platforms: "", contentForms: "", accounts: "", accountTypes: "", owners: "", contentLink: "", publishLink: "" });
   }
 
   function getFilterCount(key, value) {
     return records.filter((record) => {
       if (key === "publishDate") return formatDate(record.publishDate) === value;
       if (key === "platforms") return record.platforms.includes(value);
+      if (key === "contentForms") return record.contentForms.includes(value);
       if (key === "accounts") return record.accounts.includes(value);
       if (key === "accountTypes") return record.accountTypes.includes(value);
       if (key === "owners") return record.owners.includes(value);
@@ -617,12 +629,13 @@ export default function App() {
   }
 
   function exportExcel() {
-    const headers = ["发布日期", "IP", "内容主题", "发布平台", "发布账号", "账号类型", "负责人", "内容链接", "发布链接"];
+    const headers = ["发布日期", "IP", "内容主题", "发布平台", "内容形式", "发布账号", "账号类型", "负责人", "内容链接", "发布链接"];
     const rows = sortedFilteredRecords.map((record) => [
       formatDate(record.publishDate),
       record.ip,
       record.topic,
       record.platforms.join("、"),
+      record.contentForms.join("、"),
       record.accounts.join("、"),
       record.accountTypes.join("、"),
       record.owners.join("、"),
@@ -887,6 +900,7 @@ export default function App() {
                       <th><FilterSelect value={filters.ip} options={options.ip} placeholder="全部IP" getCount={(value) => getFilterCount("ip", value)} onChange={(value) => setFilters((f) => ({ ...f, ip: value }))} /></th>
                       <th><FilterSelect value={filters.topic} options={options.topic} placeholder="全部主题" getCount={(value) => getFilterCount("topic", value)} onChange={(value) => setFilters((f) => ({ ...f, topic: value }))} /></th>
                       <th><FilterSelect value={filters.platforms} options={options.platforms} placeholder="全部平台" getCount={(value) => getFilterCount("platforms", value)} onChange={(value) => setFilters((f) => ({ ...f, platforms: value }))} /></th>
+                      <th><FilterSelect value={filters.contentForms} options={options.contentForms} placeholder="全部形式" getCount={(value) => getFilterCount("contentForms", value)} onChange={(value) => setFilters((f) => ({ ...f, contentForms: value }))} /></th>
                       <th><FilterSelect value={filters.accounts} options={options.accounts} placeholder="全部账号" getCount={(value) => getFilterCount("accounts", value)} onChange={(value) => setFilters((f) => ({ ...f, accounts: value }))} /></th>
                       <th><FilterSelect value={filters.accountTypes} options={options.accountTypes} placeholder="全部类型" getCount={(value) => getFilterCount("accountTypes", value)} onChange={(value) => setFilters((f) => ({ ...f, accountTypes: value }))} /></th>
                       <th><FilterSelect value={filters.owners} options={options.owners} placeholder="全部负责人" getCount={(value) => getFilterCount("owners", value)} onChange={(value) => setFilters((f) => ({ ...f, owners: value }))} /></th>
@@ -974,6 +988,7 @@ export default function App() {
 
       <datalist id="ip-options">{options.ip.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="platform-options">{options.platforms.map((item) => <option key={item} value={item} />)}</datalist>
+      <datalist id="content-form-options">{options.contentForms.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="account-options">{options.accounts.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="account-type-options">{options.accountTypes.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="owner-options">{options.owners.map((item) => <option key={item} value={item} />)}</datalist>
@@ -1105,6 +1120,7 @@ function RecordRow({
       <td>{record.isEditing ? <SingleTagEditor value={record.ip} options={options.ip} listId="ip-options" placeholder="添加IP" onChange={(value) => onUpdate(record.id, "ip", value)} onRemove={() => onDeleteSingleValue(record.id, "ip")} onDeleteOption={(value) => onDeleteOption("ip", value)} /> : <TagGroup values={[record.ip || "未填写"]} />}</td>
       <td>{record.isEditing ? <input className="cell-input" value={record.topic} placeholder="填写内容主题" onChange={(e) => onUpdate(record.id, "topic", e.target.value)} /> : <div className="display-text display-topic">{record.topic || "未填写"}</div>}</td>
       <td>{record.isEditing ? <TagEditor values={record.platforms} options={options.platforms} listId="platform-options" placeholder="添加平台" onChange={(values) => onUpdateArray(record.id, "platforms", values)} onRemoveValue={(value) => onDeleteArrayValue(record.id, "platforms", value)} onDeleteOption={(value) => onDeleteOption("platforms", value)} /> : <TagGroup values={record.platforms.length ? record.platforms : ["未填写"]} />}</td>
+      <td>{record.isEditing ? <TagEditor values={record.contentForms} options={options.contentForms} listId="content-form-options" placeholder="添加形式" onChange={(values) => onUpdateArray(record.id, "contentForms", values)} onRemoveValue={(value) => onDeleteArrayValue(record.id, "contentForms", value)} onDeleteOption={(value) => onDeleteOption("contentForms", value)} /> : <TagGroup values={record.contentForms.length ? record.contentForms : ["未填写"]} />}</td>
       <td>{record.isEditing ? <TagEditor values={record.accounts} options={options.accounts} listId="account-options" placeholder="添加账号" onChange={(values) => onUpdateArray(record.id, "accounts", values)} onRemoveValue={(value) => onDeleteArrayValue(record.id, "accounts", value)} onDeleteOption={(value) => onDeleteOption("accounts", value)} /> : <TagGroup values={record.accounts.length ? record.accounts : ["未填写"]} />}</td>
       <td>{record.isEditing ? <TagEditor values={record.accountTypes} options={options.accountTypes} listId="account-type-options" placeholder="添加类型" onChange={(values) => onUpdateArray(record.id, "accountTypes", values)} onRemoveValue={(value) => onDeleteArrayValue(record.id, "accountTypes", value)} onDeleteOption={(value) => onDeleteOption("accountTypes", value)} /> : <TagGroup values={record.accountTypes.length ? record.accountTypes : ["未填写"]} />}</td>
       <td>{record.isEditing ? <TagEditor values={record.owners} options={options.owners} listId="owner-options" placeholder="添加负责人" onChange={(values) => onUpdateArray(record.id, "owners", values)} onRemoveValue={(value) => onDeleteArrayValue(record.id, "owners", value)} onDeleteOption={(value) => onDeleteOption("owners", value)} /> : <TagGroup values={record.owners.length ? record.owners : ["未填写"]} />}</td>
@@ -1221,6 +1237,9 @@ function CalendarCard({ record }) {
       <div className="calendar-topic">{record.topic || "未填写主题"}</div>
       <div className="calendar-platform-row">
         {record.platforms.length ? record.platforms.map((platform) => <PlatformBadge key={platform} platform={platform} />) : <span className="platform-text">未填写</span>}
+      </div>
+      <div className="calendar-account-type-row">
+        {record.contentForms.length ? record.contentForms.map((form) => <span key={form} className="account-type-pill" style={tagStyle(form)}>{form}</span>) : <span className="platform-text">未填写形式</span>}
       </div>
       <div className="calendar-account-type-row">
         {record.accountTypes.length ? record.accountTypes.map((type) => <span key={type} className="account-type-pill" style={tagStyle(type)}>{type}</span>) : <span className="platform-text">未填写类型</span>}
