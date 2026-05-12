@@ -457,18 +457,21 @@ export default function App() {
   useEffect(() => localStorage.setItem(DELETED_OPTIONS_KEY, JSON.stringify(deletedOptions)), [deletedOptions]);
 
   // 同步到 Supabase（防抖 2 秒）
-  const prevRecordsRef = useRef(null);
+  const isInitialSyncRef = useRef(true);
+  const prevRecordsRef = useRef([]);
   const supabaseSyncRef = useRef(null);
   useEffect(() => {
     if (!supabaseReady) return;
     
-    // 避免初始化加载时触发保存
-    if (prevRecordsRef.current === null) {
+    // 避免初始化加载时触发保存（React StrictMode 安全）
+    if (isInitialSyncRef.current) {
+      isInitialSyncRef.current = false;
       prevRecordsRef.current = records;
       return;
     }
-    if (prevRecordsRef.current === records) return;
     
+    // 避免同一引用重复触发
+    if (prevRecordsRef.current === records) return;
     prevRecordsRef.current = records;
 
     if (supabaseSyncRef.current) {
