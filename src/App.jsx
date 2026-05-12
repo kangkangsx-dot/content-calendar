@@ -324,6 +324,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date(2026, 4, 1));
   const [calendarView, setCalendarView] = useState("month"); // "month" | "week"
+  const [calendarAccountTypeFilters, setCalendarAccountTypeFilters] = useState(() => new Set());
   const [columnWidths, setColumnWidths] = useState(() => ({ ...defaultColumnWidths, ...loadJson(WIDTH_KEY, {}) }));
   const [rowHeights, setRowHeights] = useState(() => loadJson(ROW_HEIGHT_KEY, {}));
   const [weekHeights, setWeekHeights] = useState(() => ({ 0: 178, 1: 178, 2: 178, 3: 178, 4: 178, 5: 178, ...loadJson(WEEK_HEIGHT_KEY, {}) }));
@@ -797,7 +798,7 @@ export default function App() {
       const y = gridTop + weekHeightsForExport.slice(0, row).reduce((sum, value) => sum + value, 0);
       const cellH = weekHeightsForExport[row] || (isWeekView ? 320 : 178);
       const iso = toISODate(date);
-      const dayRecords = sortedFilteredRecords.filter((r) => r.publishDate === iso && !r.isEditing);
+      const dayRecords = sortedFilteredRecords.filter((r) => r.publishDate === iso && !r.isEditing && (calendarAccountTypeFilters.size === 0 || r.accountTypes.some((t) => calendarAccountTypeFilters.has(t))));
       const dayHotspots = holidayHotspots[iso] || [];
       const outside = !isWeekView && !isSameMonth(date, viewMonth);
       ctx.fillStyle = outside ? "#f8fafc" : "#ffffff";
@@ -1038,6 +1039,30 @@ export default function App() {
             </div>
             <div className="calendar-right">
               <button type="button" className="export-button" onClick={exportCalendar}><Download className="download-icon" /> 导出图片</button>
+              {options.accountTypes.length > 0 && (
+                <div className="calendar-filter-pills">
+                  {options.accountTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`calendar-filter-pill ${calendarAccountTypeFilters.has(type) ? "active" : ""}`}
+                      onClick={() => {
+                        setCalendarAccountTypeFilters((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(type)) {
+                            next.delete(type);
+                          } else {
+                            next.add(type);
+                          }
+                          return next;
+                        });
+                      }}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              )}
               <button type="button" className="calendar-view-pill" onClick={() => setCalendarView((v) => v === "month" ? "week" : "month")}>{calendarView === "month" ? "月" : "周"}</button>
             </div>
           </div>
@@ -1055,7 +1080,7 @@ export default function App() {
               const iso = toISODate(date);
               const weekIndex = Math.floor(index / 7);
               const isLast = index % 7 === 6;
-              const dayRecords = sortedFilteredRecords.filter((item) => item.publishDate === iso && !item.isEditing);
+              const dayRecords = sortedFilteredRecords.filter((item) => item.publishDate === iso && !item.isEditing && (calendarAccountTypeFilters.size === 0 || item.accountTypes.some((t) => calendarAccountTypeFilters.has(t))));
               const hotspots = holidayHotspots[iso] || [];
               const outside = calendarView === "month" && !isSameMonth(date, viewMonth);
               return (
@@ -1149,6 +1174,12 @@ export default function App() {
         .mini-button { padding: 0 13px; }
         .arrow-button { width: 34px; font-size: 19px; line-height: 1; }
         .calendar-view-pill { min-width: 46px; display: inline-flex; align-items: center; justify-content: center; padding: 0 13px; }
+        .calendar-filter-pills { display: flex; align-items: center; gap: 6px; }
+        .calendar-filter-pill { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.22); background: rgba(255,255,255,.85); color: #667085; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s ease; box-shadow: 0 2px 8px rgba(15,23,42,.04); }
+        .calendar-filter-pill:hover { background: #f8fbff; border-color: #b9d7ff; color: #007aff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(15,23,42,.08); }
+        .calendar-filter-pill:active { transform: translateY(0); }
+        .calendar-filter-pill.active { background: #007aff; border-color: #007aff; color: white; box-shadow: 0 4px 12px rgba(0,122,255,.25); }
+        .calendar-filter-pill.active:hover { background: #0066dd; border-color: #0066dd; filter: brightness(1.05); }
         .calendar-title { font-size: 17px; font-weight: 700; color: #111827; margin-left: 5px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e5e7eb; border-left: 1px solid #e5e7eb; background: rgba(255,255,255,.62); }
         .weekday-cell { padding: 9px 8px; font-size: 13px; font-weight: 600; color: #667085; background: #f8fafc; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; }
