@@ -358,7 +358,7 @@ export default function App() {
       const { data, error } = await supabase
         .from("records")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("publish_date", { ascending: true });
       if (error) {
         console.warn("Supabase 加载失败，使用本地数据:", error.message);
         setSupabaseReady(true);
@@ -371,10 +371,11 @@ export default function App() {
             publishDate: r.publish_date,
             ip: r.ip,
             topic: r.topic,
-            platforms: r.platforms,
-            accounts: r.accounts,
-            accountTypes: r.account_types,
-            owners: r.owners,
+            platforms: r.platforms || [],
+            contentForms: r.content_forms || [],
+            accounts: r.accounts || [],
+            accountTypes: r.account_types || [],
+            owners: r.owners || [],
             contentLink: r.content_link,
             publishLink: r.publish_link,
             isEditing: false,
@@ -385,6 +386,65 @@ export default function App() {
       setSupabaseReady(true);
     }
     loadFromSupabase();
+
+    // 实时订阅其他用户的数据变更
+    const channel = supabase
+      .channel('records-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'records' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        
+        if (eventType === 'INSERT' && newRecord) {
+          setRecords(current => {
+            // 检查是否已存在
+            if (current.some(r => r.id === newRecord.id)) return current;
+            const mapped = normalizeRecord({
+              id: newRecord.id,
+              publishDate: newRecord.publish_date,
+              ip: newRecord.ip,
+              topic: newRecord.topic,
+              platforms: newRecord.platforms || [],
+              contentForms: newRecord.content_forms || [],
+              accounts: newRecord.accounts || [],
+              accountTypes: newRecord.account_types || [],
+              owners: newRecord.owners || [],
+              contentLink: newRecord.content_link,
+              publishLink: newRecord.publish_link,
+              isEditing: false,
+            });
+            return [...current, mapped].sort((a, b) => {
+              const dateCompare = (a.publishDate || '').localeCompare(b.publishDate || '');
+              if (dateCompare !== 0) return dateCompare;
+              return String(a.id).localeCompare(String(b.id));
+            });
+          });
+        } else if (eventType === 'UPDATE' && newRecord) {
+          setRecords(current =>
+            current.map(r => r.id === newRecord.id
+              ? {
+                  ...r,
+                  publishDate: newRecord.publish_date,
+                  ip: newRecord.ip,
+                  topic: newRecord.topic,
+                  platforms: newRecord.platforms || [],
+                  contentForms: newRecord.content_forms || [],
+                  accounts: newRecord.accounts || [],
+                  accountTypes: newRecord.account_types || [],
+                  owners: newRecord.owners || [],
+                  contentLink: newRecord.content_link,
+                  publishLink: newRecord.publish_link,
+                }
+              : r
+            )
+          );
+        } else if (eventType === 'DELETE' && oldRecord) {
+          setRecords(current => current.filter(r => r.id !== oldRecord.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // 保存到 localStorage（本地备份）
@@ -397,28 +457,47 @@ export default function App() {
   useEffect(() => localStorage.setItem(DELETED_OPTIONS_KEY, JSON.stringify(deletedOptions)), [deletedOptions]);
 
   // 同步到 Supabase（防抖 2 秒）
-  const prevRecordsRef = useRef(records);
+  const prevRecordsRef = useRef(null);
+  const supabaseSyncRef = useRef(null);
   useEffect(() => {
     if (!supabaseReady) return;
+    
     // 避免初始化加载时触发保存
+    if (prevRecordsRef.current === null) {
+      prevRecordsRef.current = records;
+      return;
+    }
     if (prevRecordsRef.current === records) return;
+    
     prevRecordsRef.current = records;
 
-    const timer = setTimeout(async () => {
-      // 获取 Supabase 中现有的所有 id
-      const { data: existing, error: fetchError } = await supabase.from("records").select("id");
+    if (supabaseSyncRef.current) {
+      clearTimeout(supabaseSyncRef.current);
+    }
+
+    supabaseSyncRef.current = setTimeout(async () => {
+      // 获取 Supabase 中现有的所有记录
+      const { data: existing, error: fetchError } = await supabase.from("records").select("*");
       if (fetchError) {
         console.warn("Supabase 获取失败:", fetchError.message);
         return;
       }
-      const localIds = new Set(records.map((r) => r.id));
-      // 删除本地不存在的记录
-      const toDelete = (existing || []).filter((r) => !localIds.has(r.id));
+
+      const existingMap = new Map((existing || []).map(r => [r.id, r]));
+      const localIds = new Set(records.map(r => r.id));
+
+      // 找出需要删除的记录（本地不存在的）
+      const toDelete = (existing || []).filter(r => !localIds.has(r.id));
       for (const r of toDelete) {
         await supabase.from("records").delete().eq("id", r.id);
       }
-      // Upsert 所有本地记录
-      const toUpsert = records.map((r) => ({
+
+      // 找出需要新增的记录（本地有，远程没有）
+      const remoteIds = new Set((existing || []).map(r => r.id));
+      const toInsert = records.filter(r => !remoteIds.has(r.id));
+
+      // Upsert 所有本地记录（更新已存在的）
+      const toUpsert = records.map(r => ({
         id: r.id,
         publish_date: r.publishDate,
         ip: r.ip,
@@ -432,12 +511,18 @@ export default function App() {
         publish_link: r.publishLink,
         is_editing: r.isEditing,
       }));
+
       const { error: upsertError } = await supabase.from("records").upsert(toUpsert, { onConflict: "id" });
       if (upsertError) {
         console.warn("Supabase 保存失败:", upsertError.message);
       }
     }, 2000);
-    return () => clearTimeout(timer);
+    
+    return () => {
+      if (supabaseSyncRef.current) {
+        clearTimeout(supabaseSyncRef.current);
+      }
+    };
   }, [records, supabaseReady]);
 
   const dates = useMemo(() => calendarView === "week" ? getWeekDates(viewMonth) : getMonthDates(viewMonth), [viewMonth, calendarView]);
