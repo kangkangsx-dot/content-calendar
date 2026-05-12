@@ -1,4 +1,4 @@
-ALTER TABLE records ADD COLUMN IF NOT EXISTS content_forms text[] DEFAULT '{}';import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Download, Plus, Trash2 } from "lucide-react";
 import { supabase } from "./supabase";
 
@@ -486,7 +486,6 @@ export default function App() {
         return;
       }
 
-      const existingMap = new Map((existing || []).map(r => [r.id, r]));
       const localIds = new Set(records.map(r => r.id));
 
       // 找出需要删除的记录（本地不存在的）
@@ -496,9 +495,6 @@ export default function App() {
       }
 
       // 找出需要新增的记录（本地有，远程没有）
-      const remoteIds = new Set((existing || []).map(r => r.id));
-      const toInsert = records.filter(r => !remoteIds.has(r.id));
-
       // Upsert 所有本地记录（更新已存在的）
       const toUpsert = records.map(r => ({
         id: r.id,
