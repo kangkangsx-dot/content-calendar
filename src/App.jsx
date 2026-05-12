@@ -320,7 +320,7 @@ function wrapText(ctx, text, maxWidth, maxLines) {
 }
 
 export default function App() {
-  const [records, setRecords] = useState(loadRecords);
+  const [records, setRecords] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date(2026, 4, 1));
   const [calendarView, setCalendarView] = useState("month"); // "month" | "week"
@@ -361,6 +361,8 @@ export default function App() {
         .order("publish_date", { ascending: true });
       if (error) {
         console.warn("Supabase 加载失败，使用本地数据:", error.message);
+        const local = loadRecords();
+        if (local.length > 0) setRecords(local);
         setSupabaseReady(true);
         return;
       }
@@ -382,6 +384,12 @@ export default function App() {
           })
         );
         setRecords(mapped);
+      } else {
+        // 云端无数据，回退到本地缓存
+        const local = loadRecords();
+        if (local.length > 0) {
+          setRecords(local);
+        }
       }
       setSupabaseReady(true);
     }
