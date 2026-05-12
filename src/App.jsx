@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+ALTER TABLE records ADD COLUMN IF NOT EXISTS content_forms text[] DEFAULT '{}';import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Download, Plus, Trash2 } from "lucide-react";
 import { supabase } from "./supabase";
 
@@ -1158,6 +1158,7 @@ export default function App() {
         .calendar-ip-pill { display: inline-flex; align-items: center; max-width: 100%; min-height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid; font-size: 11px; font-weight: 650; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .calendar-topic { font-size: 12px; font-weight: 650; color: #1f2937; line-height: 1.25; word-break: break-word; }
         .calendar-platform-row, .calendar-account-type-row { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .calendar-meta-row { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 4px; }
         .platform-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 23px; height: 23px; padding: 0 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,.22); font-size: 11px; font-weight: 700; transition: .15s ease; }
         .platform-icon:hover { transform: translateY(-1px) scale(1.03); }
         .account-type-pill { display: inline-flex; align-items: center; min-height: 21px; padding: 0 7px; border-radius: 999px; border: 1px solid; font-size: 10.5px; font-weight: 600; transition: .15s ease; }
@@ -1320,13 +1321,9 @@ function CalendarCard({ record }) {
     <div className="calendar-record-card" style={{ background: hexToRgba(color, 0.12), borderColor: hexToRgba(color, 0.26) }}>
       <div className="calendar-ip-pill" style={ipPillStyle(record.ip || "未填写IP")}>{record.ip || "未填写IP"}</div>
       <div className="calendar-topic">{record.topic || "未填写主题"}</div>
-      <div className="calendar-platform-row">
+      <div className="calendar-meta-row">
         {record.platforms.length ? record.platforms.map((platform) => <PlatformBadge key={platform} platform={platform} />) : <span className="platform-text">未填写</span>}
-      </div>
-      <div className="calendar-account-type-row">
         {record.contentForms.length ? record.contentForms.map((form) => <span key={form} className="account-type-pill" style={tagStyle(form)}>{form}</span>) : <span className="platform-text">未填写形式</span>}
-      </div>
-      <div className="calendar-account-type-row">
         {record.accountTypes.length ? record.accountTypes.map((type) => <span key={type} className="account-type-pill" style={tagStyle(type)}>{type}</span>) : <span className="platform-text">未填写类型</span>}
       </div>
     </div>
